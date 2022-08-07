@@ -1,9 +1,19 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2022",
+    "module": "CommonJS",
+    "target": "ES6",
     "sourceMap": true,
-    "outDir": "wwwroot/js"
+    "outDir": "wwwroot/js",
+    "baseUrl": ". ",
+    "paths": {
+      "socket.io-client": [
+        "./node_modules/socket.io-client/dist/*.js"
+      ],
+      "/lib": [
+        "./wwwroot/lib"
+      ]
+    },
+    "moduleResolution": "Node"
   },
   "include": [
     "TypeScript/**/*"

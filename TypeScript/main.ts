@@ -1,9 +1,4 @@
 
-import { AppContext, IScreenSettings } from './app-ctx';
-import { Prices } from './prices';
-import { GraphRenderer } from './graph-renderer';
-
-
 function init() {
 
     AppContext.canvas = <HTMLCanvasElement>document.getElementById('the-canvas');
@@ -11,6 +6,7 @@ function init() {
 
     AppContext.ctx.translate(0.5, 0.5);
 
+    //AppContext.initSocketIo();
 
 
     /*
@@ -55,7 +51,7 @@ setTimeout(() => {
     executeAnimateFrame();
 
 }, 100);
-
+/*
 const socket = io();
 
 socket.on("connect", () => {
@@ -69,7 +65,7 @@ socket.on("disconnect", (reason) => {
 socket.on("data", (itm) => {
     console.log(itm);
 });
-
+*/
 
 function executeAnimateFrame() {
     if (!AppContext.screenSettings) {
@@ -87,7 +83,7 @@ function executeAnimateFrame() {
     AppContext.ctx.stroke();
 
     GraphRenderer.renderGrid();
-    if (Prices.minMaxPrice) {
+    if (AppContext.prices.minMaxPrice) {
         GraphRenderer.renderPrices();
         GraphRenderer.renderDates();
         GraphRenderer.renderChartLines();

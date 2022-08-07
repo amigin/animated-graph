@@ -4,10 +4,7 @@ use hyper_tungstenite::tungstenite::Message;
 use my_http_server::HttpFailResult;
 use my_web_sockets_middleware::{MyWebSockeCallback, MyWebSocket, WebSocketMessage};
 
-use crate::{
-    app::AppContext,
-    http_server::socket_io::{MySocketIo, MySocketIoMessage},
-};
+use crate::app::AppContext;
 
 pub struct SocketIoCallback {
     app: Arc<AppContext>,
@@ -32,9 +29,11 @@ impl MyWebSockeCallback for SocketIoCallback {
                     socket_io.add_web_socket(my_web_socket).await;
                 }
                 None => {
-                    let socket_io = MySocketIo::new(sid.value.to_string(), my_web_socket);
-                    let socket_io = Arc::new(socket_io);
-                    self.app.socket_io_list.add(socket_io).await;
+                    my_web_socket
+                        .send_message(Message::Text(
+                            format!("SocketIo not found with id {}", sid.value).to_string(),
+                        ))
+                        .await;
                 }
             };
         }
@@ -43,7 +42,9 @@ impl MyWebSockeCallback for SocketIoCallback {
     }
     async fn disconnected(&self, my_web_socket: Arc<MyWebSocket>) {
         println!("disconnected web_socket:{}", my_web_socket.id);
-        self.app.socket_io_list.remove(my_web_socket.id).await;
+        if let Some(socket_io) = self.app.socket_io_list.remove(my_web_socket.id).await {
+            socket_io.disconnect().await;
+        }
     }
     async fn on_message(&self, my_web_socket: Arc<MyWebSocket>, message: WebSocketMessage) {
         println!("Websocket{}, MSG: {:?}", my_web_socket.id, message);
@@ -53,10 +54,19 @@ impl MyWebSockeCallback for SocketIoCallback {
                 my_web_socket
                     .send_message(Message::Text("3probe".to_string()))
                     .await;
+                return;
             }
 
             if value == "5" {
                 tokio::spawn(super::socket_io_ping_loop::start(my_web_socket.clone()));
+                if let Some(socket_io) = self
+                    .app
+                    .socket_io_list
+                    .get_by_web_socket_io(my_web_socket.id)
+                    .await
+                {
+                    socket_io.upgrade_to_websocket().await;
+                }
 
                 let my_socket_io = self
                     .app
@@ -65,7 +75,7 @@ impl MyWebSockeCallback for SocketIoCallback {
                     .await;
 
                 if let Some(my_socket_io) = my_socket_io {
-                    my_socket_io.disconnect_except_mine(my_web_socket.id).await;
+                    my_socket_io.set_long_pooling_task().await;
                 }
             }
         }

@@ -1,6 +1,5 @@
-import { AppContext } from './app-ctx';
 
-export interface IMaxMinAvg {
+interface IMaxMinAvg {
     max: number,
     min: number,
     last: number,
@@ -8,16 +7,15 @@ export interface IMaxMinAvg {
     maxDate: number,
 }
 
-export class Prices {
+class Prices {
     public history: IBidAsk[] = [];
     private last: IBidAsk;
 
-    public static minMaxPrice: IMaxMinAvg;
+    public minMaxPrice: IMaxMinAvg;
 
-    public static centerPrice: IAnimationRateData;
+    public centerPrice: IAnimationRateData;
 
-
-    public push(bidAsk: IBidAsk) {
+    public push(bidAsk: IBidAsk, serverTime: number) {
 
         this.assignRenderData(bidAsk);
 
@@ -28,10 +26,10 @@ export class Prices {
         this.last = bidAsk;
 
         this.history.push(bidAsk);
-        this.update_min_max();
+        this.update_min_max(serverTime);
     }
 
-    private update_min_max() {
+    private update_min_max(serverTime: number) {
         let result: IMaxMinAvg;
 
         for (let price of this.history) {
@@ -59,25 +57,25 @@ export class Prices {
         }
 
         if (result) {
-            if (!Prices.centerPrice) {
-                Prices.centerPrice = {
+            if (!this.centerPrice) {
+                this.centerPrice = {
                     inRender: result.last,
                     required: result.last,
                 }
             }
             else {
-                Prices.centerPrice.required = result.last;
+                this.centerPrice.required = result.last;
             }
 
         }
 
-        if (AppContext.serverTime) {
-            if (result.maxDate < AppContext.serverTime) {
-                result.maxDate = AppContext.serverTime;
+        if (serverTime) {
+            if (result.maxDate < serverTime) {
+                result.maxDate = serverTime;
             }
         }
 
-        Prices.minMaxPrice = result;
+        this.minMaxPrice = result;
     }
 
 

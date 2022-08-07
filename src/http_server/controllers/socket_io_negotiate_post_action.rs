@@ -1,15 +1,21 @@
-use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput, WebContentType};
+use std::sync::Arc;
+
+use my_http_server::{HttpContext, HttpFailResult, HttpOkResult, HttpOutput};
+
+use crate::app::AppContext;
 
 #[my_http_server_swagger::http_route(
     method: "POST",
     route: "/socket.io/",
     description: "socket.io negotiate action",
 )]
-pub struct SocketIoNegotiatePostAction {}
+pub struct SocketIoNegotiatePostAction {
+    app: Arc<AppContext>,
+}
 
 impl SocketIoNegotiatePostAction {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(app: Arc<AppContext>) -> Self {
+        Self { app }
     }
 }
 
@@ -20,12 +26,6 @@ async fn handle_request(
     let query = ctx.request.get_query_string()?;
 
     let sid = query.get_required("sid")?;
-    let result = super::models::compile_negotiate_response(sid.value);
-    HttpOutput::Content {
-        headers: None,
-        content_type: Some(WebContentType::Text),
-        content: result.to_owned().into_bytes(),
-    }
-    .into_ok_result(true)
-    .into()
+    println!("Post with Id:{}", sid.value);
+    HttpOutput::Empty.into_ok_result(false).into()
 }

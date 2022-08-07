@@ -26,14 +26,16 @@ impl SocketIoList {
         Some(result.clone())
     }
 
-    pub async fn remove(&self, web_socket_id: i64) {
+    pub async fn remove(&self, web_socket_id: i64) -> Option<Arc<MySocketIo>> {
         let mut write_access = self.sockets.write().await;
 
         if let Some(socket_io) = find_socket_io(&write_access, web_socket_id).await {
-            if socket_io.remove_web_socket(web_socket_id).await == 0 {
-                write_access.remove(&socket_io.sid);
+            if let Some(socket_io) = write_access.remove(&socket_io.sid) {
+                return Some(socket_io);
             }
         }
+
+        None
     }
 
     pub async fn get_by_web_socket_io(&self, web_socket_id: i64) -> Option<Arc<MySocketIo>> {

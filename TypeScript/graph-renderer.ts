@@ -1,5 +1,3 @@
-import { AppContext } from './app-ctx';
-import { Prices } from './prices';
 
 const digits: number = 2;
 const multiplier: number = 100;
@@ -10,7 +8,7 @@ const gridStep = 100;
 const dateGridOffset = 100;
 const dateGridStep = 240;
 
-export class GraphRenderer {
+class GraphRenderer {
 
     public static Background = "white";
     public static Grids = "gray";
@@ -51,9 +49,9 @@ export class GraphRenderer {
     }
 
     public static renderPrices() {
-        adjustChartRatePixel(Prices.centerPrice);
+        adjustChartRatePixel(AppContext.prices.centerPrice);
         AppContext.ctx.fillStyle = GraphRenderer.Text;
-        AppContext.ctx.fillText(Prices.centerPrice.inRender.toFixed(digits), 0, AppContext.screenSettings.canvasCenter - 5);
+        AppContext.ctx.fillText(AppContext.prices.centerPrice.inRender.toFixed(digits), 0, AppContext.screenSettings.canvasCenter - 5);
     }
 
     public static renderDates() {
@@ -62,7 +60,7 @@ export class GraphRenderer {
         let microsecondsOffset = 0;
 
         while (i < AppContext.canvas.width) {
-            let date = new Date(Prices.minMaxPrice.minDate + microsecondsOffset);
+            let date = new Date(AppContext.prices.minMaxPrice.minDate + microsecondsOffset);
             AppContext.ctx.fillText(date.toLocaleTimeString(), i, AppContext.canvas.height - 10);
             i += dateGridStep;
 
@@ -77,15 +75,15 @@ export class GraphRenderer {
         let last: IBidAsk;
 
         AppContext.ctx.font = "14px Arial";
-        AppContext.ctx.fillText("Max: " + Prices.minMaxPrice.max, 0, 20);
-        AppContext.ctx.fillText("Min: " + Prices.minMaxPrice.min, 0, 35);
+        AppContext.ctx.fillText("Max: " + AppContext.prices.minMaxPrice.max, 0, 20);
+        AppContext.ctx.fillText("Min: " + AppContext.prices.minMaxPrice.min, 0, 35);
 
         AppContext.ctx.strokeStyle = GraphRenderer.Chart;
         AppContext.ctx.lineWidth = 2;
 
         let prevX: number;
         AppContext.ctx.beginPath();
-        adjustChartRatePixel(Prices.centerPrice);
+        adjustChartRatePixel(AppContext.prices.centerPrice);
         for (let a of AppContext.prices.history) {
             x = getXFromDate(a.timestamp);
             adjustChartRatePixel(a.toRender);
@@ -147,11 +145,11 @@ function adjustAnimationPips(pips: number): number {
 
 
 function getXFromDate(date: number): number {
-    let secondsDifference = (date - Prices.minMaxPrice.minDate) / 1000;
+    let secondsDifference = (date - AppContext.prices.minMaxPrice.minDate) / 1000;
     return dateGridOffset + secondsDifference;
 }
 
 function getYFromPrice(price: number): number {
-    let pips = Utils.Pips(Prices.centerPrice.inRender, price, multiplier, digits);
+    let pips = Utils.Pips(AppContext.prices.centerPrice.inRender, price, multiplier, digits);
     return AppContext.screenSettings.canvasCenter - pips;
 }

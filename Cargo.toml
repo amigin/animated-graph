@@ -27,3 +27,4 @@ websocket = "*"
 futures = "*"
 tokio-util = "*"
 async-trait = "*"
+uuid = { version = "*", features = ["serde", "v4"] }
