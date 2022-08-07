@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "commonjs": "^0.0.1",
+    "gulp": "^4.0.2",
+    "require": "^2.4.20",
+    "requirejs": "^2.3.6",
+    "socket.io-client": "^4.5.1",
+    "gulp-js-minify": "^0.0.3",
+    "gulp-concat": "^2.6.0"
+  }
+}

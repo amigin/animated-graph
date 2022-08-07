@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "sourceMap": true,
+    "outDir": "wwwroot/js"
+  },
+  "include": [
+    "TypeScript/**/*"
+  ],
+  "compileOnSave": true,
+  "exclude": [
+    "node_modules"
+  ]
+}
