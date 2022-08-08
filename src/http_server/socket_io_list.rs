@@ -25,7 +25,7 @@ impl SocketIoList {
         Some(result.clone())
     }
 
-    async fn get_list(&self) -> Option<Vec<Arc<MySocketIoConnection<()>>>> {
+    pub async fn get_list(&self) -> Option<Vec<Arc<MySocketIoConnection<()>>>> {
         let read_access = self.sockets.read().await;
         if read_access.len() == 0 {
             return None;
