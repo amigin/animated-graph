@@ -9,24 +9,24 @@ interface IMaxMinAvg {
 
 class Prices {
     public history: IBidAsk[] = [];
-    private last: IBidAsk;
+    public last: IBidAsk;
+    public prev: IBidAsk;
 
     public minMaxPrice: IMaxMinAvg;
 
     public centerPrice: IAnimationRateData;
 
-    public push(bidAsk: IBidAsk, serverTime: number) {
-
-        this.assignRenderData(bidAsk);
-
-        if (this.history.length > 200) {
+    public push(bidAsk: IBidAsk) {
+        if (this.history.length > 2048) {
             this.history.shift();
         }
+
+        this.prev = this.last;
 
         this.last = bidAsk;
 
         this.history.push(bidAsk);
-        this.update_min_max(serverTime);
+        this.update_min_max(bidAsk.st);
     }
 
     private update_min_max(serverTime: number) {
@@ -38,8 +38,8 @@ class Prices {
                 result = {
                     max: price.ask,
                     min: price.ask,
-                    minDate: price.timestamp,
-                    maxDate: price.timestamp,
+                    minDate: price.dt,
+                    maxDate: price.dt,
                     last: price.ask,
                 }
             }
@@ -52,22 +52,10 @@ class Prices {
                 if (result.min > price.ask) {
                     result.min = price.ask;
                 }
-                result.maxDate = price.timestamp
+                result.maxDate = price.dt
             }
         }
 
-        if (result) {
-            if (!this.centerPrice) {
-                this.centerPrice = {
-                    inRender: result.last,
-                    required: result.last,
-                }
-            }
-            else {
-                this.centerPrice.required = result.last;
-            }
-
-        }
 
         if (serverTime) {
             if (result.maxDate < serverTime) {
@@ -78,20 +66,4 @@ class Prices {
         this.minMaxPrice = result;
     }
 
-
-    private assignRenderData(bidAsk: IBidAsk) {
-
-        if (this.last) {
-            bidAsk.toRender = {
-                inRender: this.last.toRender.inRender,
-                required: bidAsk.ask
-            }
-        }
-        else {
-            bidAsk.toRender = {
-                inRender: bidAsk.ask,
-                required: bidAsk.ask
-            }
-        }
-    }
 }

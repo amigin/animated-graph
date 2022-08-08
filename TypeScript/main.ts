@@ -1,102 +1,124 @@
 
 function init() {
 
-    AppContext.canvas = <HTMLCanvasElement>document.getElementById('the-canvas');
-    AppContext.ctx = AppContext.canvas.getContext('2d');
+    RetinaCanvas.canvas = <HTMLCanvasElement>document.getElementById('the-canvas');
+    RetinaCanvas.ctx = RetinaCanvas.canvas.getContext('2d');
 
-    AppContext.ctx.translate(0.5, 0.5);
+    RetinaCanvas.ctx.translate(0.5, 0.5);
 
-    //AppContext.initSocketIo();
-
-
-    /*
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/Prices")
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
-
-    connection.on("bidask", (itm: IBidAsk) => {
-        AppContext.prices.push(itm);
-        reRender();
-    });
-
-    connection.on("time", (itm: IServerTime) => {
-        AppContext.serverTime = itm.timestamp;
-    });
-
-    connection.start();
-    */
 }
 
 function resize() {
+
+    let dpr = window.devicePixelRatio;
     let screenSettings: IScreenSettings = {
         canvasWidth: window.innerWidth,
-        canvasHeight: window.innerHeight - 10,
-        dpr: window.devicePixelRatio,
-        canvasCenter: Utils.roundNumber(AppContext.canvas.height * 0.5, 0),
+        canvasHeight: window.innerHeight,
+        dpr: dpr,
+        canvasCenter: undefined,
     }
 
-    AppContext.canvas.setAttribute('style', 'width:100%; height: ' + screenSettings.canvasHeight + 'px');
-    AppContext.canvas.width = screenSettings.canvasWidth * screenSettings.dpr;
-    AppContext.canvas.height = screenSettings.canvasHeight * screenSettings.dpr;
+    RetinaCanvas.canvas.setAttribute('style', 'width:100%; height: ' + screenSettings.canvasHeight + 'px');
+    RetinaCanvas.canvas.width = screenSettings.canvasWidth * dpr;
+    RetinaCanvas.canvas.height = screenSettings.canvasHeight * dpr;
 
-    AppContext.screenSettings = screenSettings;
+    screenSettings.canvasCenter = Utils.roundNumber(screenSettings.canvasHeight * 0.5, 0);
+
+    RetinaCanvas.screenSettings = screenSettings;
 }
 
 setTimeout(() => {
-    console.log("Started");
+
     init();
     resize();
 
     executeAnimateFrame();
 
 }, 100);
-/*
-const socket = io();
 
-socket.on("connect", () => {
-    console.log("SocketIO connected");
-});
-
-socket.on("disconnect", (reason) => {
-    console.log("Disconnected: " + reason);
-});
-
-socket.on("data", (itm) => {
-    console.log(itm);
-});
-*/
 
 function executeAnimateFrame() {
-    if (!AppContext.screenSettings) {
+    if (!RetinaCanvas.screenSettings) {
         resize();
     }
 
-    AppContext.ctx.fillStyle = GraphRenderer.Background;
-    AppContext.ctx.fillRect(0, 0, AppContext.canvas.width, AppContext.canvas.height);
 
-    AppContext.ctx.strokeStyle = GraphRenderer.Grids;
-    AppContext.ctx.lineWidth = 1;
-    AppContext.ctx.beginPath();
-    AppContext.ctx.moveTo(0, AppContext.screenSettings.canvasCenter);
-    AppContext.ctx.lineTo(AppContext.canvas.width, AppContext.screenSettings.canvasCenter);
-    AppContext.ctx.stroke();
+    if (RetinaCanvas.screenSettings) {
 
-    GraphRenderer.renderGrid();
-    if (AppContext.prices.minMaxPrice) {
-        GraphRenderer.renderPrices();
-        GraphRenderer.renderDates();
-        GraphRenderer.renderChartLines();
+        RetinaCanvas.setFillStyle(GraphRenderer.Background);
+        RetinaCanvas.ctx.fillRect(0, 0, RetinaCanvas.canvas.width, RetinaCanvas.canvas.height);
+
+        GraphRenderer.renderGrid();
+        if (AppContext.prices.minMaxPrice) {
+            GraphRenderer.renderPrices();
+            GraphRenderer.refreshRequired();
+            GraphRenderer.renderDates();
+            GraphRenderer.renderChartLines();
+        }
+
+        requestAnimationFrame(executeAnimateFrame);
     }
-
-    requestAnimationFrame(executeAnimateFrame);
 }
 
 function reRender() {
     resize();
 }
 
+function updateRate(bidAsk: IBidAsk) {
+    AppContext.serverTime = bidAsk.st;
+    AppContext.prices.push(bidAsk);
+
+    if (!RetinaCanvas.screenSettings) {
+        resize();
+    }
+
+
+    if (!AppContext.prices.prev) {
+        AppContext.prices.last.toRender = {
+            yRequred: RetinaCanvas.getYCenter(),
+            yInRender: RetinaCanvas.getYCenter(),
+        }
+    } else {
+        AppContext.prices.last.toRender = {
+            yRequred: getYFromPrice(AppContext.prices.last.ask, GraphRenderer.xScale),
+            yInRender: AppContext.prices.prev.toRender.yInRender,
+        }
+    }
+
+    if (!AppContext.prices.centerPrice) {
+        AppContext.prices.centerPrice = {
+            rateRequred: AppContext.prices.last.ask,
+            rateInRender: AppContext.prices.last.ask,
+        }
+    }
+    else {
+        AppContext.prices.centerPrice.rateRequred = AppContext.prices.last.ask;
+    }
+}
+
 
 window.addEventListener('resize', (event) => {
     resize();
+    GraphRenderer.refreshRequired();
+});
+
+AppContext.socket.on("packet", ({ type, data }) => {
+
+    if (type == 2) {
+
+        if (data[0] == "bid-ask") {
+            updateRate(data[1]);
+        }
+
+        if (data[0] == "st") {
+            AppContext.serverTime = data[1];
+
+            if (AppContext.prices) {
+                if (AppContext.prices.minMaxPrice) {
+                    AppContext.prices.minMaxPrice.maxDate = AppContext.serverTime;
+                }
+            }
+        }
+    }
+
 });

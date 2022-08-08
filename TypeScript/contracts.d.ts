@@ -1,17 +1,25 @@
-interface IBidAsk{
+interface IBidAsk {
     id: String,
     bid: number,
     ask: number,
-    timestamp: number,
-    toRender: IAnimationRateData
+    dt: number,
+    toRender: IAnimationYData
+    st: number,
 }
 
 
-interface IServerTime{
+
+interface IServerTime {
     timestamp: number,
 }
 
-interface IAnimationRateData{
-    required: number,
-    inRender: number,
+interface IAnimationYData {
+    yRequred: number,
+    yInRender: number,
+}
+
+
+interface IAnimationRateData {
+    rateRequred: number,
+    rateInRender: number,
 }

@@ -8,7 +8,10 @@ const gridStep = 100;
 const dateGridOffset = 100;
 const dateGridStep = 240;
 
+
 class GraphRenderer {
+
+    public static xScale: number = 1;
 
     public static Background = "white";
     public static Grids = "gray";
@@ -17,54 +20,69 @@ class GraphRenderer {
 
     public static renderGrid() {
 
+        RetinaCanvas.setStrokeStyle(this.Grids);
+        RetinaCanvas.setLineWidth(1);
+        RetinaCanvas.beginPath();
+        RetinaCanvas.moveTo(0, RetinaCanvas.getYCenter());
+        RetinaCanvas.lineTo(RetinaCanvas.getWidth(), RetinaCanvas.getYCenter());
+        RetinaCanvas.stroke();
 
-        let i = AppContext.screenSettings.canvasCenter - gridStep;
+
+        let i = RetinaCanvas.getYCenter() - gridStep;
+
+        let canvasWidth = RetinaCanvas.getWidth();
         while (i > 0) {
-            AppContext.ctx.beginPath();
-            AppContext.ctx.moveTo(0, i);
-            AppContext.ctx.lineTo(AppContext.canvas.width, i);
-            AppContext.ctx.stroke();
+            RetinaCanvas.beginPath();
+            RetinaCanvas.moveTo(0, i);
+            RetinaCanvas.lineTo(canvasWidth, i);
+            RetinaCanvas.stroke();
             i -= gridStep;
         }
 
-        i = AppContext.screenSettings.canvasCenter + gridStep;
+        i = RetinaCanvas.getYCenter() + gridStep;
 
-        while (i < AppContext.canvas.height) {
-            AppContext.ctx.beginPath();
-            AppContext.ctx.moveTo(0, i);
-            AppContext.ctx.lineTo(AppContext.canvas.width, i);
-            AppContext.ctx.stroke();
+        while (i < RetinaCanvas.getHeight()) {
+            RetinaCanvas.beginPath();
+            RetinaCanvas.moveTo(0, i);
+            RetinaCanvas.lineTo(canvasWidth, i);
+            RetinaCanvas.stroke();
             i += gridStep;
-        }
-
-        i = dateGridOffset;
-
-        while (i < AppContext.canvas.width) {
-            AppContext.ctx.beginPath();
-            AppContext.ctx.moveTo(i, 0);
-            AppContext.ctx.lineTo(i, AppContext.canvas.height);
-            AppContext.ctx.stroke();
-            i += dateGridStep;
         }
     }
 
     public static renderPrices() {
-        adjustChartRatePixel(AppContext.prices.centerPrice);
-        AppContext.ctx.fillStyle = GraphRenderer.Text;
-        AppContext.ctx.fillText(AppContext.prices.centerPrice.inRender.toFixed(digits), 0, AppContext.screenSettings.canvasCenter - 5);
+        adjustChartRate(AppContext.prices.centerPrice);
+        RetinaCanvas.setFillStyle(GraphRenderer.Text);
+
+        RetinaCanvas.fillText(AppContext.prices.centerPrice.rateInRender.toFixed(digits), 0, RetinaCanvas.getYCenter() - 5);
     }
 
     public static renderDates() {
-        let i = dateGridOffset;
+        let i = get_right_canvas_x();
 
         let microsecondsOffset = 0;
 
-        while (i < AppContext.canvas.width) {
-            let date = new Date(AppContext.prices.minMaxPrice.minDate + microsecondsOffset);
-            AppContext.ctx.fillText(date.toLocaleTimeString(), i, AppContext.canvas.height - 10);
-            i += dateGridStep;
+        while (i > 0) {
+            RetinaCanvas.beginPath();
+            RetinaCanvas.moveTo(i, 0);
+            RetinaCanvas.lineTo(i, RetinaCanvas.getHeight());
+            RetinaCanvas.stroke();
+            let date = new Date(AppContext.prices.minMaxPrice.maxDate - microsecondsOffset);
+            RetinaCanvas.fillText(date.toLocaleTimeString(), i, RetinaCanvas.getHeight() - 10);
+            i -= dateGridStep;
 
             microsecondsOffset += dateGridStep * 1000;
+        }
+    }
+
+    public static setXScale(xScale: number) {
+        this.xScale = xScale;
+        this.refreshRequired();
+    }
+
+    public static refreshRequired() {
+        for (let a of AppContext.prices.history) {
+            a.toRender.yRequred = getYFromPrice(a.ask, this.xScale);
         }
     }
 
@@ -74,54 +92,104 @@ class GraphRenderer {
         let y: number = undefined;
         let last: IBidAsk;
 
-        AppContext.ctx.font = "14px Arial";
-        AppContext.ctx.fillText("Max: " + AppContext.prices.minMaxPrice.max, 0, 20);
-        AppContext.ctx.fillText("Min: " + AppContext.prices.minMaxPrice.min, 0, 35);
+        RetinaCanvas.setFontSize(14);
+        RetinaCanvas.fillText("Max: " + AppContext.prices.minMaxPrice.max, 0, 20);
+        RetinaCanvas.fillText("Min: " + AppContext.prices.minMaxPrice.min, 0, 35);
 
-        AppContext.ctx.strokeStyle = GraphRenderer.Chart;
-        AppContext.ctx.lineWidth = 2;
+        RetinaCanvas.setStrokeStyle(this.Chart);
+
+        RetinaCanvas.setLineWidth(3);
 
         let prevX: number;
-        AppContext.ctx.beginPath();
-        adjustChartRatePixel(AppContext.prices.centerPrice);
+        RetinaCanvas.beginPath();
+        adjustChartRate(AppContext.prices.centerPrice);
         for (let a of AppContext.prices.history) {
-            x = getXFromDate(a.timestamp);
-            adjustChartRatePixel(a.toRender);
+            x = getXFromDate(a.dt);
+            adjustYPixel(a.toRender);
 
-            y = getYFromPrice(a.toRender.inRender);
+            y = a.toRender.yInRender;
 
             if (!prevX) {
-                AppContext.ctx.moveTo(x, y);
+                RetinaCanvas.moveTo(x, y);
             }
             else {
-                AppContext.ctx.lineTo(x, y);
+                RetinaCanvas.lineTo(x, y);
             }
 
             last = a;
             prevX = x;
         }
 
-        if (AppContext.serverTime) {
-            x = getXFromDate(AppContext.serverTime);
-            AppContext.ctx.lineTo(x, y);
-        }
+
+        RetinaCanvas.lineTo(get_right_canvas_x(), y);
+        RetinaCanvas.stroke();
 
 
-        AppContext.ctx.stroke();
-        AppContext.ctx.fillText(last.ask.toFixed(digits), x, AppContext.screenSettings.canvasCenter - 20);
+
+        RetinaCanvas.beginPath();
+        RetinaCanvas.setLineWidth(2);
+        RetinaCanvas.setStrokeStyle("blue");
+        RetinaCanvas.lineTo(10, 10);
+        RetinaCanvas.moveTo(20, 20);
+
+        RetinaCanvas.stroke();
+
+        //    RetinaCanvas.fillText(last.ask.toFixed(digits), x, RetinaCanvas.getYCenter() - 20);
     }
 
 }
 
-function adjustChartRatePixel(data: IAnimationRateData) {
-    if (data.inRender > data.required) {
-        let pips = Utils.Pips(data.inRender, data.required, multiplier, digits);
-        data.inRender = Utils.addPips(data.inRender, -adjustAnimationPips(pips), multiplier);
+function adjustYPixel(data: IAnimationYData) {
+    if (data.yInRender > data.yRequred) {
+
+        let delta = data.yInRender - data.yRequred;
+        if (delta > 100) {
+            delta = 100;
+        }
+        else
+            if (delta > 10) {
+                delta = 10;
+            }
+            else
+                if (delta < 5) {
+                    data.yInRender = data.yRequred;
+                    return;
+                }
+
+
+        data.yInRender -= delta;
     }
 
-    if (data.inRender < data.required) {
-        let pips = Utils.Pips(data.required, data.inRender, multiplier, digits);
-        data.inRender = Utils.addPips(data.inRender, adjustAnimationPips(pips), multiplier);
+    if (data.yInRender < data.yRequred) {
+
+        let delta = data.yRequred - data.yInRender;
+        if (delta > 100) {
+            delta = 100;
+        }
+        else
+            if (delta > 10) {
+                delta = 10;
+            }
+            else
+                if (delta < 5) {
+                    data.yInRender = data.yRequred;
+                    return;
+                }
+
+        data.yInRender += delta;
+    }
+}
+
+
+function adjustChartRate(data: IAnimationRateData) {
+    if (data.rateInRender > data.rateRequred) {
+        let pips = Utils.Pips(data.rateInRender, data.rateRequred, multiplier, digits);
+        data.rateInRender = Utils.addPips(data.rateInRender, -adjustAnimationPips(pips), multiplier);
+    }
+
+    if (data.rateInRender < data.rateRequred) {
+        let pips = Utils.Pips(data.rateRequred, data.rateInRender, multiplier, digits);
+        data.rateInRender = Utils.addPips(data.rateInRender, adjustAnimationPips(pips), multiplier);
     }
 }
 
@@ -145,11 +213,16 @@ function adjustAnimationPips(pips: number): number {
 
 
 function getXFromDate(date: number): number {
-    let secondsDifference = (date - AppContext.prices.minMaxPrice.minDate) / 1000;
-    return dateGridOffset + secondsDifference;
+    let secondsDifference = (AppContext.prices.minMaxPrice.maxDate - date) / 1000;
+    return get_right_canvas_x() - secondsDifference;
 }
 
-function getYFromPrice(price: number): number {
-    let pips = Utils.Pips(AppContext.prices.centerPrice.inRender, price, multiplier, digits);
-    return AppContext.screenSettings.canvasCenter - pips;
+function getYFromPrice(price: number, xScale: number): number {
+    let pips = Utils.Pips(AppContext.prices.centerPrice.rateInRender, price, multiplier, digits) / xScale;
+    return RetinaCanvas.getYCenter() - pips;
+}
+
+
+function get_right_canvas_x(): number {
+    return RetinaCanvas.getWidth() - dateGridOffset;
 }

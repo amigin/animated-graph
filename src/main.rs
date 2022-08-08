@@ -1,9 +1,12 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
+use background::ServerTimeBroadcast;
 use mfx_feed_client::{MfxFeedSerializer, TcpConnectionEvents};
 use my_tcp_sockets::TcpClient;
+use rust_extensions::MyTimer;
 
 mod app;
+mod background;
 mod http_server;
 mod mfx_feed_client;
 
@@ -21,6 +24,14 @@ async fn main() {
             app.logger.clone(),
         )
         .await;
+
+    let mut timer_1s = MyTimer::new(Duration::from_secs(1));
+    timer_1s.register_timer(
+        "ServerTimeBroadcast",
+        Arc::new(ServerTimeBroadcast::new(app.clone())),
+    );
+
+    timer_1s.start(app.app_states.clone(), app.logger.clone());
 
     crate::http_server::setup_server(&app);
 
