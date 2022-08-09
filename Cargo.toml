@@ -12,7 +12,9 @@ my-http-server = { branch = "0.2.6", git = "https://github.com/MyJetTools/my-htt
 ] }
 my-http-server-controllers = { branch = "0.2.6", git = "https://github.com/MyJetTools/my-http-server-controllers.git" }
 my-http-server-swagger = { branch = "0.2.6", git = "https://github.com/MyJetTools/my-http-server-swagger.git" }
-my-socket-io-middleware = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-socket-io-middleware.git" }
+my-socket-io-middleware = { branch = "0.1.0", git = "https://github.com/MyJetTools/my-socket-io-middleware.git", features = [
+    "debug_ws",
+] }
 my-logger = { branch = "0.1.3", git = "https://github.com/MyJetTools/my-logger.git" }
 my-tcp-sockets = { branch = "0.1.6", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 my-json = { branch = "0.1.1", git = "https://github.com/MyJetTools/my-json.git" }

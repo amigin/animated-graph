@@ -25,6 +25,7 @@ function resize() {
     screenSettings.canvasCenter = Utils.roundNumber(screenSettings.canvasHeight * 0.5, 0);
 
     RetinaCanvas.screenSettings = screenSettings;
+
 }
 
 setTimeout(() => {
@@ -33,6 +34,11 @@ setTimeout(() => {
     resize();
 
     executeAnimateFrame();
+
+    RetinaCanvas.canvas.onwheel = function (itm) {
+        console.log(itm);
+
+    };
 
 }, 100);
 
@@ -64,6 +70,20 @@ function reRender() {
     resize();
 }
 
+function updateServerTime(time: number) {
+    AppContext.serverTime = time;
+
+    if (AppContext.prices) {
+        if (AppContext.prices.minMaxPrice) {
+            AppContext.prices.minMaxPrice.maxDate = AppContext.serverTime;
+        }
+    }
+
+    GraphRenderer.refreshRequired();
+}
+
+
+
 function updateRate(bidAsk: IBidAsk) {
     AppContext.serverTime = bidAsk.st;
     AppContext.prices.push(bidAsk);
@@ -75,13 +95,26 @@ function updateRate(bidAsk: IBidAsk) {
 
     if (!AppContext.prices.prev) {
         AppContext.prices.last.toRender = {
-            yRequred: RetinaCanvas.getYCenter(),
-            yInRender: RetinaCanvas.getYCenter(),
+            y: {
+                requred: RetinaCanvas.getYCenter(),
+                inRender: RetinaCanvas.getYCenter(),
+
+            },
+            x: {
+                requred: get_right_canvas_x(),
+                inRender: get_right_canvas_x(),
+            }
         }
     } else {
         AppContext.prices.last.toRender = {
-            yRequred: getYFromPrice(AppContext.prices.last.ask, GraphRenderer.xScale),
-            yInRender: AppContext.prices.prev.toRender.yInRender,
+            y: {
+                requred: getYFromPrice(AppContext.prices.last.ask, GraphRenderer.xScale),
+                inRender: AppContext.prices.prev.toRender.y.inRender,
+            },
+            x: {
+                requred: getXFromDate(AppContext.prices.last.dt, GraphRenderer.yScale),
+                inRender: get_right_canvas_x(),
+            }
         }
     }
 
@@ -92,33 +125,47 @@ function updateRate(bidAsk: IBidAsk) {
         }
     }
     else {
-        AppContext.prices.centerPrice.rateRequred = AppContext.prices.last.ask;
+        let y = getYFromPrice(AppContext.prices.last.ask, GraphRenderer.xScale);
+        if (y < 100 || y > RetinaCanvas.getHeight() - 100) {
+            AppContext.prices.centerPrice.rateRequred = AppContext.prices.last.ask;
+            GraphRenderer.setXScale(1);
+        }
+
+        adjustYScale();
     }
 }
 
+
+function adjustYScale() {
+    let xScale = 1;
+    while (xScale < 100) {
+        let maxY = getYFromPrice(AppContext.prices.minMaxPrice.max, xScale);
+        let minY = getYFromPrice(AppContext.prices.minMaxPrice.min, xScale);
+
+        if (minY > 0 && minY < RetinaCanvas.getHeight()) {
+            if (maxY > 0 && maxY < RetinaCanvas.getHeight()) {
+                break;
+            }
+        }
+        xScale += 1;
+    }
+
+    GraphRenderer.setXScale(xScale);
+}
 
 window.addEventListener('resize', (event) => {
     resize();
     GraphRenderer.refreshRequired();
 });
 
-AppContext.socket.on("packet", ({ type, data }) => {
+AppContext.socket = AppContext.socketIoManager.socket("/");
 
-    if (type == 2) {
-
-        if (data[0] == "bid-ask") {
-            updateRate(data[1]);
-        }
-
-        if (data[0] == "st") {
-            AppContext.serverTime = data[1];
-
-            if (AppContext.prices) {
-                if (AppContext.prices.minMaxPrice) {
-                    AppContext.prices.minMaxPrice.maxDate = AppContext.serverTime;
-                }
-            }
-        }
-    }
-
+AppContext.socket.on("st", (arg) => {
+    updateServerTime(arg);
 });
+
+
+AppContext.socket.on("bid-ask", (arg) => {
+    updateRate(arg);
+});
+

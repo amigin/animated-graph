@@ -12,11 +12,13 @@ const dateGridStep = 240;
 class GraphRenderer {
 
     public static xScale: number = 1;
+    public static yScale: number = 1;
 
-    public static Background = "white";
+    public static Background = "black";
     public static Grids = "gray";
-    public static Chart = "green";
-    public static Text = "Black";
+    public static Chart = "white";
+    public static Text = "white";
+    public static ChartFill = "#ffffff30";
 
     public static renderGrid() {
 
@@ -79,35 +81,76 @@ class GraphRenderer {
         this.xScale = xScale;
         this.refreshRequired();
     }
+    public static setYScale(yScale: number) {
+        this.yScale = yScale;
+        this.refreshRequired();
+    }
 
     public static refreshRequired() {
         for (let a of AppContext.prices.history) {
-            a.toRender.yRequred = getYFromPrice(a.ask, this.xScale);
+            a.toRender.y.requred = getYFromPrice(a.ask, this.xScale);
+            a.toRender.x.requred = getXFromDate(a.dt, this.yScale);
         }
     }
 
     public static renderChartLines() {
 
-        let x: number = undefined;
-        let y: number = undefined;
-        let last: IBidAsk;
+        let last: IBidAsk = undefined;
 
         RetinaCanvas.setFontSize(14);
-        RetinaCanvas.fillText("Max: " + AppContext.prices.minMaxPrice.max, 0, 20);
-        RetinaCanvas.fillText("Min: " + AppContext.prices.minMaxPrice.min, 0, 35);
+
+
+        let x: number = undefined;
+        let y: number = undefined;
+        let prevX: number;
+
+        RetinaCanvas.beginPath();
+        RetinaCanvas.setFillStyle(this.ChartFill);
+        adjustChartRate(AppContext.prices.centerPrice);
+        let firstX = undefined;
+        for (let a of AppContext.prices.history) {
+            adjustXPixel(a.toRender.x);
+            adjustYPixel(a.toRender.y);
+
+            x = a.toRender.x.inRender;
+
+            if (!firstX) {
+                firstX = x;
+            }
+
+
+
+            y = a.toRender.y.inRender;
+
+            if (!prevX) {
+                RetinaCanvas.moveTo(x, y);
+            }
+            else {
+                RetinaCanvas.lineTo(x, y);
+            }
+
+            last = a;
+            prevX = x;
+        }
+
+        RetinaCanvas.lineTo(get_right_canvas_x(), y);
+        RetinaCanvas.lineTo(get_right_canvas_x(), RetinaCanvas.getHeight());
+        RetinaCanvas.lineTo(firstX, RetinaCanvas.getHeight());
+        RetinaCanvas.fill();
+
 
         RetinaCanvas.setStrokeStyle(this.Chart);
 
         RetinaCanvas.setLineWidth(3);
 
-        let prevX: number;
-        RetinaCanvas.beginPath();
-        adjustChartRate(AppContext.prices.centerPrice);
-        for (let a of AppContext.prices.history) {
-            x = getXFromDate(a.dt);
-            adjustYPixel(a.toRender);
 
-            y = a.toRender.yInRender;
+        x = undefined;
+        y = undefined;
+        prevX = undefined;
+        RetinaCanvas.beginPath();
+        for (let a of AppContext.prices.history) {
+            x = a.toRender.x.inRender;
+            y = a.toRender.y.inRender;
 
             if (!prevX) {
                 RetinaCanvas.moveTo(x, y);
@@ -127,56 +170,105 @@ class GraphRenderer {
 
 
         RetinaCanvas.beginPath();
-        RetinaCanvas.setLineWidth(2);
-        RetinaCanvas.setStrokeStyle("blue");
-        RetinaCanvas.lineTo(10, 10);
-        RetinaCanvas.moveTo(20, 20);
-
+        RetinaCanvas.setLineWidth(0.5);
+        RetinaCanvas.fillRect(0, y, RetinaCanvas.getWidth(), 0.5);
         RetinaCanvas.stroke();
+
+        RetinaCanvas.beginPath();
+        RetinaCanvas.setFillStyle("white");
+        RetinaCanvas.moveTo(RetinaCanvas.getWidth(), y);
+        RetinaCanvas.lineTo(RetinaCanvas.getWidth() - 10, y - 10);
+        RetinaCanvas.lineTo(RetinaCanvas.getWidth() - 80, y - 10);
+        RetinaCanvas.lineTo(RetinaCanvas.getWidth() - 80, y + 10);
+        RetinaCanvas.lineTo(RetinaCanvas.getWidth() - 10, y + 10);
+        RetinaCanvas.fill();
+
+        RetinaCanvas.setFillStyle("black");
+        RetinaCanvas.textBaseLineMiddle();
+        RetinaCanvas.fillText(AppContext.prices.last.ask.toFixed(digits), RetinaCanvas.getWidth() - 75, y);
+
 
         //    RetinaCanvas.fillText(last.ask.toFixed(digits), x, RetinaCanvas.getYCenter() - 20);
     }
 
 }
 
-function adjustYPixel(data: IAnimationYData) {
-    if (data.yInRender > data.yRequred) {
-
-        let delta = data.yInRender - data.yRequred;
-        if (delta > 100) {
-            delta = 100;
-        }
-        else
-            if (delta > 10) {
-                delta = 10;
-            }
-            else
-                if (delta < 5) {
-                    data.yInRender = data.yRequred;
-                    return;
-                }
-
-
-        data.yInRender -= delta;
+function adjustXPixel(data: IAnimationData) {
+    if (Math.abs(data.inRender - data.requred) < 0.1) {
+        return;
     }
 
-    if (data.yInRender < data.yRequred) {
+    if (data.inRender > data.requred) {
+        let dela = data.inRender - data.requred;
+        if (dela > 10) {
+            data.inRender -= 10;
+        }
+        else
+            if (dela > 1) {
+                data.inRender -= 1;
+            }
+            else {
+                data.inRender -= 0.2;
+            }
 
-        let delta = data.yRequred - data.yInRender;
+    }
+    else
+        if (data.inRender < data.requred) {
+
+            let delta = data.requred - data.inRender;
+            if (delta > 10) {
+                data.inRender += 10;
+            }
+            else
+                if (delta > 1) {
+                    data.inRender += 1;
+                }
+                else {
+                    data.inRender += 0.2;
+                }
+        }
+
+}
+
+function adjustYPixel(data: IAnimationData) {
+    if (data.inRender > data.requred) {
+
+        let delta = data.inRender - data.requred;
         if (delta > 100) {
-            delta = 100;
+            delta = 20;
         }
         else
             if (delta > 10) {
                 delta = 10;
             }
             else
-                if (delta < 5) {
-                    data.yInRender = data.yRequred;
+                if (delta < 2) {
+                    data.inRender = data.requred;
                     return;
                 }
 
-        data.yInRender += delta;
+
+        data.inRender -= delta;
+    }
+
+    if (data.inRender < data.requred) {
+
+        let delta = data.requred - data.inRender;
+
+        if (delta > 100) {
+            delta = 20;
+        }
+        else
+            if (delta > 10) {
+                delta = 10;
+            }
+            else
+                if (delta < 2) {
+                    data.inRender = data.requred;
+                    return;
+                }
+
+        data.inRender += delta;
     }
 }
 
@@ -212,9 +304,9 @@ function adjustAnimationPips(pips: number): number {
 }
 
 
-function getXFromDate(date: number): number {
+function getXFromDate(date: number, yScale: number): number {
     let secondsDifference = (AppContext.prices.minMaxPrice.maxDate - date) / 1000;
-    return get_right_canvas_x() - secondsDifference;
+    return get_right_canvas_x() - secondsDifference * yScale;
 }
 
 function getYFromPrice(price: number, xScale: number): number {

@@ -3,19 +3,25 @@ interface IBidAsk {
     bid: number,
     ask: number,
     dt: number,
-    toRender: IAnimationYData
+    toRender: IBidAskToRender
     st: number,
 }
 
+
+interface IBidAskToRender {
+    x: IAnimationData,
+    y: IAnimationData,
+}
 
 
 interface IServerTime {
     timestamp: number,
 }
 
-interface IAnimationYData {
-    yRequred: number,
-    yInRender: number,
+
+interface IAnimationData {
+    requred: number,
+    inRender: number,
 }
 
 

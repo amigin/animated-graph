@@ -37,8 +37,19 @@ class RetinaCanvas {
         this.ctx.stroke();
     }
 
+    public static fill() {
+        this.ctx.fill();
+    }
+
+
     public static fillText(text: string, x: number, y: number) {
         this.ctx.fillText(text, x * this.screenSettings.dpr, y * this.screenSettings.dpr);
+    }
+
+
+
+    public static textBaseLineMiddle() {
+        this.ctx.textBaseline = "middle";
     }
 
     public static setStrokeStyle(style: string) {
