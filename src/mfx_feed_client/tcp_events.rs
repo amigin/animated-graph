@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use my_json::json_writer::{JsonArrayWriter, JsonObjectWriter};
+use my_socket_io_middleware::my_socket_io_messages::*;
 use my_tcp_sockets::{ConnectionEvent, SocketEventCallback};
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -54,9 +55,9 @@ impl SocketEventCallback<MfxTcpContract, MfxFeedSerializer> for TcpConnectionEve
                         model_writer.write_f64("ask", bid_ask.ask);
                         json_writer.write_object(model_writer);
 
-                        let payload = MySocketIoMessage::Message(MySocketIoTextMessage {
+                        let payload = MySocketIoMessage::Message(MySocketIoTextPayload {
                             nsp: None,
-                            data: MySocketIoTextData::Json(json_writer),
+                            data: String::from_utf8(json_writer.build()).unwrap(),
                             id: None,
                         });
 

@@ -1,9 +1,11 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use my_http_server::{FilesMapping, MyHttpServer, StaticFilesMiddleware};
-use my_socket_io_middleware::{MySocketIoConnectionsCallbacks, MySocketIoEngineMiddleware};
+use my_socket_io_middleware::MySocketIoEngineMiddleware;
 
 use crate::app::AppContext;
+
+use super::SocketIoConnectionsCallback;
 
 pub fn setup_server(app: &Arc<AppContext>) {
     let mut http_server = MyHttpServer::new(SocketAddr::from(([0, 0, 0, 0], 5566)));
@@ -14,7 +16,7 @@ pub fn setup_server(app: &Arc<AppContext>) {
     )));
 
     http_server.add_middleware(Arc::new(MySocketIoEngineMiddleware::new(Arc::new(
-        MySocketIoConnectionsCallbacks::new(),
+        SocketIoConnectionsCallback::new(app.clone()),
     ))));
 
     http_server.start(app.app_states.clone(), app.logger.clone());

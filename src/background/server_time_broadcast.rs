@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use my_json::json_writer::JsonArrayWriter;
+use my_socket_io_middleware::my_socket_io_messages::*;
 use rust_extensions::{date_time::DateTimeAsMicroseconds, MyTimerTick};
 
 use crate::app::AppContext;
@@ -29,7 +30,7 @@ impl MyTimerTick for ServerTimeBroadcast {
 
             let payload = MySocketIoMessage::Message(MySocketIoTextPayload {
                 nsp: None,
-                data: MySocketIoTextPayload::Json(array_writer),
+                data: String::from_utf8(array_writer.build()).unwrap(),
                 id: None,
             });
 

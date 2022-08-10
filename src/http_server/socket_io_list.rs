@@ -1,7 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use my_socket_io_middleware::MySocketIoConnection;
 use tokio::sync::RwLock;
+
+use super::SocketIoConnection;
 
 pub struct SocketIoList {
     pub sockets: RwLock<HashMap<String, Arc<SocketIoConnection>>>,
@@ -14,18 +15,12 @@ impl SocketIoList {
         }
     }
 
-    pub async fn add(&self, socket_io: Arc<MySocketIoConnection<()>>) {
+    pub async fn add(&self, socket_io: Arc<SocketIoConnection>) {
         let mut write_access = self.sockets.write().await;
-        write_access.insert(socket_io.id.clone(), socket_io);
+        write_access.insert(socket_io.get_id().to_string(), socket_io);
     }
 
-    pub async fn get(&self, sid: &str) -> Option<Arc<MySocketIoConnection<()>>> {
-        let read_access = self.sockets.read().await;
-        let result = read_access.get(sid)?;
-        Some(result.clone())
-    }
-
-    pub async fn get_list(&self) -> Option<Vec<Arc<MySocketIoConnection<()>>>> {
+    pub async fn get_list(&self) -> Option<Vec<Arc<SocketIoConnection>>> {
         let read_access = self.sockets.read().await;
         if read_access.len() == 0 {
             return None;
@@ -40,22 +35,7 @@ impl SocketIoList {
         Some(result)
     }
 
-    pub async fn get_by_websocket_id(
-        &self,
-        web_socket_id: i64,
-    ) -> Option<Arc<MySocketIoConnection<()>>> {
-        let sockets = self.get_list().await?;
-
-        for socket_io in sockets {
-            if socket_io.has_web_socket(web_socket_id).await {
-                return Some(socket_io.clone());
-            }
-        }
-
-        None
-    }
-
-    pub async fn remove_by_id(&self, socket_io_id: &str) -> Option<Arc<MySocketIoConnection<()>>> {
+    pub async fn remove(&self, socket_io_id: &str) -> Option<Arc<SocketIoConnection>> {
         let mut write_access = self.sockets.write().await;
         write_access.remove(socket_io_id)
     }
