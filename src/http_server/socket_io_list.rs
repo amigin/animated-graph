@@ -4,7 +4,7 @@ use my_socket_io_middleware::MySocketIoConnection;
 use tokio::sync::RwLock;
 
 pub struct SocketIoList {
-    pub sockets: RwLock<HashMap<String, Arc<MySocketIoConnection<()>>>>,
+    pub sockets: RwLock<HashMap<String, Arc<SocketIoConnection>>>,
 }
 
 impl SocketIoList {
@@ -58,26 +58,5 @@ impl SocketIoList {
     pub async fn remove_by_id(&self, socket_io_id: &str) -> Option<Arc<MySocketIoConnection<()>>> {
         let mut write_access = self.sockets.write().await;
         write_access.remove(socket_io_id)
-    }
-}
-
-#[async_trait::async_trait]
-impl my_socket_io_middleware::SocketIoList<()> for SocketIoList {
-    async fn add(&self, socket_io_connection: Arc<MySocketIoConnection<()>>) {
-        self.add(socket_io_connection).await
-    }
-
-    async fn remove(&self, socket_io_id: &str) -> Option<Arc<MySocketIoConnection<()>>> {
-        self.remove_by_id(socket_io_id).await
-    }
-
-    async fn get(&self, socket_io_id: &str) -> Option<Arc<MySocketIoConnection<()>>> {
-        self.get(socket_io_id).await
-    }
-    async fn get_by_web_socket_id(
-        &self,
-        web_socket_id: i64,
-    ) -> Option<Arc<MySocketIoConnection<()>>> {
-        self.get_by_websocket_id(web_socket_id).await
     }
 }

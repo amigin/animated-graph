@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use my_http_server::{FilesMapping, MyHttpServer, StaticFilesMiddleware};
-use my_socket_io_middleware::MySocketIoMiddleware;
+use my_socket_io_middleware::{MySocketIoConnectionsCallbacks, MySocketIoEngineMiddleware};
 
 use crate::app::AppContext;
 
@@ -13,9 +13,9 @@ pub fn setup_server(app: &Arc<AppContext>) {
         Some(vec!["/index.html".to_string()]),
     )));
 
-    http_server.add_middleware(Arc::new(MySocketIoMiddleware::new(
-        app.socket_io_list.clone(),
-    )));
+    http_server.add_middleware(Arc::new(MySocketIoEngineMiddleware::new(Arc::new(
+        MySocketIoConnectionsCallbacks::new(),
+    ))));
 
     http_server.start(app.app_states.clone(), app.logger.clone());
 }
