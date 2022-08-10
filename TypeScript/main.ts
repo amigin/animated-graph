@@ -36,7 +36,19 @@ setTimeout(() => {
     executeAnimateFrame();
 
     RetinaCanvas.canvas.onwheel = function (itm) {
-        console.log(itm);
+        let delta = itm.deltaX;
+        console.log(delta);
+
+        if (delta < 0) {
+            if (GraphRenderer.dateScale > 1) {
+                GraphRenderer.setDateScale(GraphRenderer.dateScale - 0.5);
+            }
+        }
+        else if (delta > 0) {
+            if (GraphRenderer.dateScale < 20) {
+                GraphRenderer.setDateScale(GraphRenderer.dateScale + 0.5);
+            }
+        }
 
     };
 
@@ -100,7 +112,7 @@ function updateRate(bidAsk: IBidAsk) {
                 inRender: RetinaCanvas.getYCenter(),
 
             },
-            x: {
+            date: {
                 requred: get_right_canvas_x(),
                 inRender: get_right_canvas_x(),
             }
@@ -111,8 +123,8 @@ function updateRate(bidAsk: IBidAsk) {
                 requred: getYFromPrice(AppContext.prices.last.ask, GraphRenderer.xScale),
                 inRender: AppContext.prices.prev.toRender.y.inRender,
             },
-            x: {
-                requred: getXFromDate(AppContext.prices.last.dt, GraphRenderer.yScale),
+            date: {
+                requred: getXFromDate(AppContext.prices.last.dt, GraphRenderer.dateScale),
                 inRender: get_right_canvas_x(),
             }
         }

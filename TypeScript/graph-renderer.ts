@@ -8,11 +8,12 @@ const gridStep = 100;
 const dateGridOffset = 100;
 const dateGridStep = 240;
 
+const animationAcceleration = 0.2;
 
 class GraphRenderer {
 
     public static xScale: number = 1;
-    public static yScale: number = 1;
+    public static dateScale: number = 1;
 
     public static Background = "black";
     public static Grids = "gray";
@@ -69,7 +70,7 @@ class GraphRenderer {
             RetinaCanvas.moveTo(i, 0);
             RetinaCanvas.lineTo(i, RetinaCanvas.getHeight());
             RetinaCanvas.stroke();
-            let date = new Date(AppContext.prices.minMaxPrice.maxDate - microsecondsOffset);
+            let date = new Date(AppContext.prices.minMaxPrice.maxDate - microsecondsOffset / this.dateScale);
             RetinaCanvas.fillText(date.toLocaleTimeString(), i, RetinaCanvas.getHeight() - 10);
             i -= dateGridStep;
 
@@ -81,15 +82,15 @@ class GraphRenderer {
         this.xScale = xScale;
         this.refreshRequired();
     }
-    public static setYScale(yScale: number) {
-        this.yScale = yScale;
+    public static setDateScale(dateScale: number) {
+        this.dateScale = dateScale;
         this.refreshRequired();
     }
 
     public static refreshRequired() {
         for (let a of AppContext.prices.history) {
             a.toRender.y.requred = getYFromPrice(a.ask, this.xScale);
-            a.toRender.x.requred = getXFromDate(a.dt, this.yScale);
+            a.toRender.date.requred = getXFromDate(a.dt, this.dateScale);
         }
     }
 
@@ -109,10 +110,10 @@ class GraphRenderer {
         adjustChartRate(AppContext.prices.centerPrice);
         let firstX = undefined;
         for (let a of AppContext.prices.history) {
-            adjustXPixel(a.toRender.x);
+            adjustXPixel(a.toRender.date);
             adjustYPixel(a.toRender.y);
 
-            x = a.toRender.x.inRender;
+            x = a.toRender.date.inRender;
 
             if (!firstX) {
                 firstX = x;
@@ -149,7 +150,7 @@ class GraphRenderer {
         prevX = undefined;
         RetinaCanvas.beginPath();
         for (let a of AppContext.prices.history) {
-            x = a.toRender.x.inRender;
+            x = a.toRender.date.inRender;
             y = a.toRender.y.inRender;
 
             if (!prevX) {
@@ -193,82 +194,51 @@ class GraphRenderer {
 
 }
 
+function getAccDelta(delta: number): number {
+    if (delta > 2) {
+        return delta * animationAcceleration;
+    }
+    else
+        if (delta < 2) {
+            return delta;
+        }
+
+    return 1;
+
+}
+
 function adjustXPixel(data: IAnimationData) {
+    if (data.inRender == data.requred) {
+        return
+    }
     if (Math.abs(data.inRender - data.requred) < 0.1) {
+        data.inRender = data.requred;
         return;
     }
 
     if (data.inRender > data.requred) {
-        let dela = data.inRender - data.requred;
-        if (dela > 10) {
-            data.inRender -= 10;
-        }
-        else
-            if (dela > 1) {
-                data.inRender -= 1;
-            }
-            else {
-                data.inRender -= 0.2;
-            }
-
+        let delta = data.inRender - data.requred;
+        data.inRender -= getAccDelta(delta);
     }
     else
         if (data.inRender < data.requred) {
 
             let delta = data.requred - data.inRender;
-            if (delta > 10) {
-                data.inRender += 10;
-            }
-            else
-                if (delta > 1) {
-                    data.inRender += 1;
-                }
-                else {
-                    data.inRender += 0.2;
-                }
+            data.inRender += getAccDelta(delta);
         }
 
 }
 
 function adjustYPixel(data: IAnimationData) {
     if (data.inRender > data.requred) {
-
         let delta = data.inRender - data.requred;
-        if (delta > 100) {
-            delta = 20;
-        }
-        else
-            if (delta > 10) {
-                delta = 10;
-            }
-            else
-                if (delta < 2) {
-                    data.inRender = data.requred;
-                    return;
-                }
-
-
-        data.inRender -= delta;
+        data.inRender -= getAccDelta(delta);
     }
 
     if (data.inRender < data.requred) {
 
         let delta = data.requred - data.inRender;
-
-        if (delta > 100) {
-            delta = 20;
-        }
-        else
-            if (delta > 10) {
-                delta = 10;
-            }
-            else
-                if (delta < 2) {
-                    data.inRender = data.requred;
-                    return;
-                }
-
-        data.inRender += delta;
+        data.inRender += getAccDelta(delta);
     }
 }
 
@@ -304,10 +274,11 @@ function adjustAnimationPips(pips: number): number {
 }
 
 
-function getXFromDate(date: number, yScale: number): number {
+function getXFromDate(date: number, dateScale: number): number {
     let secondsDifference = (AppContext.prices.minMaxPrice.maxDate - date) / 1000;
-    return get_right_canvas_x() - secondsDifference * yScale;
+    return get_right_canvas_x() - secondsDifference * dateScale;
 }
+
 
 function getYFromPrice(price: number, xScale: number): number {
     let pips = Utils.Pips(AppContext.prices.centerPrice.rateInRender, price, multiplier, digits) / xScale;

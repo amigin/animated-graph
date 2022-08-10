@@ -9,7 +9,7 @@ interface IBidAsk {
 
 
 interface IBidAskToRender {
-    x: IAnimationData,
+    date: IAnimationData,
     y: IAnimationData,
 }
 
